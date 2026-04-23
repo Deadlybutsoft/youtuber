@@ -1,15 +1,40 @@
-import React, { useState } from 'react';
-import { ArrowUp, ListFilter } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowUp, Settings, ChevronDown } from 'lucide-react';
+import SettingsPopup from './SettingsPopup';
 
 interface Props {
   isLoading: boolean;
   onSubmit: (query: string, lengthOption: string) => void;
+  selectedVoice: string;
+  onVoiceChange: (voiceId: string) => void;
+  selectedModel: string;
+  onModelChange: (model: string) => void;
+  onApiKeysChange: (keys: { geminiKey: string; elevenLabsKey: string; openRouterKey: string }) => void;
+  apiKeyError?: string | null;
+  onClearApiKeyError?: () => void;
 }
 
-export default function InputBar({ isLoading, onSubmit }: Props) {
+const LENGTH_OPTIONS = ["Short", "Long", "Explained"] as const;
+
+export default function InputBar({ isLoading, onSubmit, selectedVoice, onVoiceChange, selectedModel, onModelChange, onApiKeysChange, apiKeyError, onClearApiKeyError }: Props) {
   const [query, setQuery] = useState("");
   const [lengthOption, setLengthOption] = useState<"Short" | "Long" | "Explained">("Short");
-  const [showMenu, setShowMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showLength, setShowLength] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (apiKeyError) setShowSettings(true);
+  }, [apiKeyError]);
+
+  const autoResize = () => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 96) + 'px'; // 96px ≈ 4 lines
+  };
+
+  useEffect(autoResize, [query]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,32 +43,52 @@ export default function InputBar({ isLoading, onSubmit }: Props) {
     setQuery("");
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (query.trim()) handleSubmit(e);
+    }
+  };
+
   return (
-    <div className="relative z-30 flex-none flex items-center justify-center w-full shrink-0 pb-8 sm:pb-10 md:pb-12 px-10 sm:px-12 md:px-14">
-      <form onSubmit={handleSubmit} className="w-full max-w-[700px]">
-        <div className="relative flex items-center w-full bg-white/[0.06] border border-white/15 rounded-none px-2 py-1 backdrop-blur-sm transition-colors duration-300 focus-within:border-white/30 focus-within:bg-white/[0.08]">
-          <div className="relative">
-            <button type="button" onClick={() => setShowMenu(!showMenu)} className="flex items-center gap-2 pl-3 pr-4 py-2 text-[12px] font-['IBM_Plex_Mono',monospace] text-white/50 hover:text-white/80 transition-colors uppercase tracking-widest cursor-pointer bg-transparent border-none">
-              <ListFilter className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{lengthOption}</span>
+    <div className="flex-none flex items-center justify-center w-full shrink-0 pb-1 sm:pb-2">
+      <form onSubmit={handleSubmit} className="w-full max-w-[800px] px-2 sm:px-6">
+        <div className="relative flex items-end w-full bg-[#2F2F2F] border border-[#444] rounded-[20px] px-2 py-1.5 shadow-md focus-within:border-[#666] transition-colors duration-300">
+          <button type="button" onClick={() => setShowSettings(true)} className="pl-2 pr-1 pb-1.5 text-white/40 hover:text-[#FF4E00] transition-colors shrink-0 self-end" aria-label="Settings">
+            <Settings className="w-7 h-7" />
+          </button>
+          <div className="relative shrink-0 self-end pb-1.5">
+            <button type="button" onClick={() => setShowLength(v => !v)} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[18px] font-bold text-white/50 hover:text-white/80 transition-colors">
+              {lengthOption} <ChevronDown className="w-5 h-5" />
             </button>
-            {showMenu && (
-              <div className="absolute bottom-full left-0 mb-2 w-36 bg-[#0a0a0a] border border-white/15 shadow-2xl overflow-hidden z-50">
-                {(["Short", "Long", "Explained"] as const).map((opt) => (
-                  <button key={opt} type="button" onClick={() => { setLengthOption(opt); setShowMenu(false); }} className={`w-full text-left px-4 py-2.5 text-[12px] font-['IBM_Plex_Mono',monospace] uppercase tracking-widest transition-colors cursor-pointer border-none ${lengthOption === opt ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}>
+            {showLength && (
+              <div className="absolute bottom-full left-0 mb-1 w-28 bg-[#1A1A1A] border border-[#333] rounded-lg shadow-2xl overflow-hidden z-50 py-1">
+                {LENGTH_OPTIONS.map((opt) => (
+                  <button key={opt} type="button" onClick={() => { setLengthOption(opt); setShowLength(false); }} className={`w-full text-left px-3 py-1.5 text-[12px] font-bold transition-colors ${lengthOption === opt ? 'bg-[#FF4E00]/20 text-[#FF4E00]' : 'text-white/50 hover:text-white hover:bg-white/5'}`}>
                     {opt}
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <div className="w-[1px] h-5 bg-white/10 mr-2" />
-          <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask me anything..." className="w-full bg-transparent border-none py-3 pl-2 pr-12 text-[16px] text-white/90 outline-none placeholder:text-white/25 font-['Space_Grotesk',sans-serif]" disabled={isLoading} onFocus={() => setShowMenu(false)} />
-          <button type="submit" disabled={isLoading || !query.trim()} className="absolute right-2.5 w-8 h-8 flex items-center justify-center bg-white/90 text-[#050505] rounded-none opacity-80 hover:opacity-100 disabled:opacity-20 disabled:bg-white/20 disabled:text-white/30 transition-all cursor-pointer border-none" aria-label="Generate">
+          <textarea
+            ref={textareaRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setShowLength(false)}
+            placeholder="Ask me anything..."
+            rows={1}
+            disabled={isLoading}
+            className="w-full bg-transparent border-none py-2.5 pl-2 pr-12 text-[16px] text-white outline-none placeholder:text-white/30 font-sans resize-none overflow-y-auto leading-6"
+            style={{ maxHeight: 96 }}
+          />
+          <button type="submit" disabled={isLoading || !query.trim()} className="absolute right-2.5 bottom-2 w-9 h-9 flex items-center justify-center bg-[#FF4E00] text-white rounded-full hover:bg-[#FF6520] disabled:opacity-30 disabled:bg-[#555] disabled:text-[#888] transition-all shrink-0" aria-label="Generate">
             <ArrowUp className="w-4 h-4" />
           </button>
         </div>
       </form>
+      <SettingsPopup open={showSettings} onClose={() => { setShowSettings(false); onClearApiKeyError?.(); }} onSave={onApiKeysChange} selectedVoice={selectedVoice} onVoiceChange={onVoiceChange} selectedModel={selectedModel} onModelChange={onModelChange} errorMessage={apiKeyError} />
     </div>
   );
 }
