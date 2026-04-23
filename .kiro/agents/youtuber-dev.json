@@ -1,0 +1,19 @@
+{
+  "name": "youtuber-dev",
+  "description": "Development agent for the Youtuber app - a Gemini-powered cinematic slide presentation generator with voice narration",
+  "prompt": "You are a development assistant for the Youtuber app, a React + TypeScript project using Vite, Tailwind CSS v4, Framer Motion, Recharts, and the Google Gemini API. The app generates cinematic slide presentations with voice narration from user queries. Follow the existing project conventions: functional components, custom hooks for logic, and a modular file structure under src/.",
+  "tools": ["@builtin"],
+  "allowedTools": ["fs_read", "grep", "glob", "code"],
+  "resources": [
+    "file://src/**/*.ts",
+    "file://src/**/*.tsx",
+    "file://package.json",
+    "file://tsconfig.json",
+    "file://vite.config.ts"
+  ],
+  "hooks": {
+    "agentSpawn": [
+      { "command": "node -v && npm -v" }
+    ]
+  }
+}
