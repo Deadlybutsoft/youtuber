@@ -3,14 +3,25 @@ import { parsePartialJsonArray } from '../utils/parsePartialJson';
 
 export class RateLimitError extends Error { constructor() { super('rate_limited'); } }
 
-async function fetchStream(
-  body: object,
-  onSlide: (slide: Slide) => void,
-): Promise<Slide[]> {
+export async function streamSlides(
+  query: string,
+  lengthOption: string,
+  model: string,
+  existingSlides: Slide[],
+  geminiKey: string,
+  onUpdate: (slides: Slide[]) => void,
+  openRouterKey?: string,
+): Promise<void> {
+  const previousTitles = existingSlides.slice(-3).map(s => s.title);
+
   const res = await fetch('/api/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      query, lengthOption, model, previousTitles,
+      ...(geminiKey && { geminiKey }),
+      ...(openRouterKey && { openRouterKey }),
+    }),
   });
 
   if (!res.ok) {
@@ -23,6 +34,7 @@ async function fetchStream(
   const decoder = new TextDecoder();
   let accumulated = '';
   let emittedCount = 0;
+  const slides: Slide[] = [];
 
   while (true) {
     const { done, value } = await reader.read();
@@ -30,52 +42,9 @@ async function fetchStream(
     accumulated += decoder.decode(value, { stream: true });
     const parsed = parsePartialJsonArray(accumulated) as Slide[];
     for (let i = emittedCount; i < parsed.length; i++) {
-      onSlide(parsed[i]);
+      slides.push(parsed[i]);
+      onUpdate([...slides]);
       emittedCount++;
     }
   }
-
-  return parsePartialJsonArray(accumulated) as Slide[];
-}
-
-export async function streamSlides(
-  query: string,
-  lengthOption: string,
-  model: string,
-  existingSlides: Slide[],
-  geminiKey: string,
-  onUpdate: (slides: Slide[]) => void,
-  openRouterKey?: string,
-): Promise<void> {
-  const previousTitles = existingSlides.slice(-3).map(s => s.title);
-  const base = {
-    query, lengthOption, model, previousTitles,
-    ...(geminiKey && { geminiKey }),
-    ...(openRouterKey && { openRouterKey }),
-  };
-
-  // Skip intro/rest split for Short (1-3 slides) — not worth two round trips
-  if (lengthOption === 'Short') {
-    const slides: Slide[] = [];
-    await fetchStream(base, (slide) => {
-      slides.push(slide);
-      onUpdate([...slides]);
-    });
-    return;
-  }
-
-  const newSlides: Slide[] = [];
-  const emit = () => onUpdate([...newSlides]);
-
-  // Fire intro call
-  const introSlides = await fetchStream({ ...base, mode: 'intro' }, (slide) => {
-    newSlides.push(slide);
-    emit();
-  });
-
-  // Fire rest call — await it so isStreaming stays true until all slides arrive
-  await fetchStream(
-    { ...base, mode: 'rest', introTitles: introSlides.map(s => s.title) },
-    (slide) => { newSlides.push(slide); emit(); },
-  ).catch(() => {});
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Slide } from './types/slide';
 import { streamSlides, RateLimitError } from './services/ai';
@@ -51,7 +51,7 @@ export default function App() {
   const [showCaptions, setShowCaptions] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState('auto');
-  const [selectedModel, setSelectedModel] = useState('gemini');
+  const [selectedModel, setSelectedModel] = useState('openrouter');
   const [apiKeys, setApiKeys] = useState({ geminiKey: '', elevenLabsKey: '', openRouterKey: '' });
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [captionSize, setCaptionSize] = useState<CaptionSize>('md');
@@ -68,7 +68,9 @@ export default function App() {
   }, []);
 
   const progress = useProgress(isStreaming);
-  const resolvedVoice = useMemo(() => selectedVoice === 'auto' ? pickRandomVoice() : selectedVoice, [selectedVoice, currentSlideIndex]);
+  // Pick one random voice per session — stable across all slides
+  const sessionVoiceRef = useRef(pickRandomVoice());
+  const resolvedVoice = selectedVoice === 'auto' ? sessionVoiceRef.current : selectedVoice;
   const { visibleCaption, isSpeaking } = useSlidePlayback(slides, currentSlideIndex, setCurrentSlideIndex, isStreaming, isPlaying, voiceEnabled, resolvedVoice, apiKeys.elevenLabsKey, playbackSpeed);
 
   const [loadingVerb, setLoadingVerb] = useState(LOADING_VERBS[0]);
@@ -253,7 +255,7 @@ export default function App() {
 
           {!isLoading && currentSlide && (
             <>
-              <SlideRenderer slide={currentSlide} slideIndex={currentSlideIndex} />
+              <SlideRenderer slide={currentSlide} slideIndex={currentSlideIndex} totalSlides={slides.length} />
               <CaptionOverlay caption={visibleCaption} visible={showCaptions} size={captionSize} />
               <Avatar isSpeaking={isSpeaking && isPlaying} isVisible={showAvatar && slides.length > 0 && !isLoading} />
             </>

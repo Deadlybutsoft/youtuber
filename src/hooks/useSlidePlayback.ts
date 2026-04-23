@@ -47,9 +47,19 @@ export function useSlidePlayback(
     if (audioRef.current) audioRef.current.playbackRate = playbackSpeed;
   }, [playbackSpeed]);
 
+  const slidesRef = useRef(slides);
+  slidesRef.current = slides;
+
+  // Track the slide count at the current index to avoid restarting voice on specialist merges
+  const slideCountRef = useRef(slides.length);
+
   useEffect(() => {
     if (slides.length === 0 || !slides[currentSlideIndex]) return;
     if (isStreaming && slides.length === currentSlideIndex + 1) return;
+
+    // Only restart if the slide index actually changed, not just array length
+    const prevCount = slideCountRef.current;
+    slideCountRef.current = slides.length;
 
     let canceled = false;
     let timeoutId: NodeJS.Timeout;
@@ -59,7 +69,7 @@ export function useSlidePlayback(
     let sentenceIdx = 0;
 
     // Pre-fetch next slide's first sentence
-    const nextSlide = slides[currentSlideIndex + 1];
+    const nextSlide = slidesRef.current[currentSlideIndex + 1];
     if (nextSlide && voiceEnabled && ttsAvailableRef.current) {
       const nextScript = nextSlide.script || "Next slide.";
       const nextFirst = nextScript.match(/[^.!?]+[.!?]*/g)?.[0]?.trim();
@@ -74,7 +84,7 @@ export function useSlidePlayback(
           if (canceled) { clearInterval(checkAdvance); return; }
           if (isPlayingRef.current) {
             clearInterval(checkAdvance);
-            if (currentSlideIndex < slides.length - 1) setCurrentSlideIndex(c => c + 1);
+            if (currentSlideIndex < slidesRef.current.length - 1) setCurrentSlideIndex(c => c + 1);
           }
         }, 100);
         return;
@@ -148,7 +158,7 @@ export function useSlidePlayback(
         audioRef.current = null;
       }
     };
-  }, [currentSlideIndex, slides.length, isStreaming]);
+  }, [currentSlideIndex, isStreaming]);
 
   return { visibleCaption, isSpeaking };
 }

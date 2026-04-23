@@ -1,10 +1,12 @@
 # 🎬 Youtuber
 
-> Like ChatGPT, but instead of text answers — you get videos.
+> Like ChatGPT, but instead of text answers, you get videos.
 
-**Youtuber** goes beyond text. Ask any question and instead of a plain text response, it generates a full video-style answer with presentation slides and AI voiceover — just like a YouTuber explaining it to you.
+&nbsp;
 
-Built with **Next.js 16**, **Gemini 2.5 Flash**, **ElevenLabs Text-to-Speech API**, and **Kiro**.
+**Youtuber** goes beyond text. Ask any question and instead of a plain text response, it generates a full video-style answer with cinematic presentation slides and AI voiceover — just like a YouTuber explaining it to you.
+
+Built with **[Kiro](https://kiro.dev)**, powered by **[ElevenLabs](https://elevenlabs.io)** for lifelike AI narration, **Next.js 16** for the frontend, and an LLM backend for slide generation.
 
 ---
 
@@ -42,10 +44,10 @@ Built with **Next.js 16**, **Gemini 2.5 Flash**, **ElevenLabs Text-to-Speech API
 │   ┌──────────────────────────────────┐                      │
 │   │  app/api/generate/route.ts       │                       │
 │   │                                  │                       │
-│   │  GEMINI_API_KEY (server-only)    │                       │
+│   │  LLM_API_KEY (server-only)       │                       │
 │   │       │                          │                       │
 │   │       ▼                          │                       │
-│   │  Gemini 2.5 Flash                │                       │
+│   │  LLM (slide generation)          │                       │
 │   │  generateContentStream()         │                       │
 │   │       │                          │                       │
 │   │       ▼                          │                       │
@@ -66,7 +68,7 @@ youtuber/
 │   ├── globals.css               # Tailwind + Google Fonts
 │   └── api/
 │       └── generate/
-│           └── route.ts          # ← Gemini API lives here (server)
+│           └── route.ts          # ← LLM + ElevenLabs API (server)
 │
 ├── src/
 │   ├── App.tsx                   # Root client component
@@ -95,7 +97,7 @@ youtuber/
 │           ├── SvgDiagram.tsx    # Raw SVG diagrams / flowcharts
 │           └── ImageCollage.tsx  # Multi-image Wikipedia grid
 │
-├── .env.local                    # GEMINI_API_KEY (never exposed to browser)
+├── .env.local                    # API keys (never exposed to browser)
 ├── next.config.ts
 ├── postcss.config.mjs
 └── tsconfig.json
@@ -126,8 +128,9 @@ youtuber/
 # 1. Install dependencies
 npm install
 
-# 2. Add your Gemini API key
-echo 'GEMINI_API_KEY="your-key-here"' > .env.local
+# 2. Add your API keys
+cp .env.example .env.local
+# Then edit .env.local with your GEMINI_API_KEY and ELEVENLABS_API_KEY
 
 # 3. Run
 npm run dev
@@ -135,7 +138,9 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-Get a Gemini API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+Get your API keys:
+- **Gemini** → [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+- **ElevenLabs** → [elevenlabs.io/app/settings/api-keys](https://elevenlabs.io/app/settings/api-keys)
 
 ---
 
@@ -143,11 +148,12 @@ Get a Gemini API key at [aistudio.google.com/apikey](https://aistudio.google.com
 
 | | |
 |---|---|
+| Built with | [Kiro](https://kiro.dev) |
 | Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 |
 | Animation | Framer Motion |
 | Charts | Recharts |
-| AI | Google Gemini 2.5 Flash |
-| Voice | Web Speech API |
+| AI | LLM-powered slide generation |
+| Voice | [ElevenLabs](https://elevenlabs.io) Text-to-Speech |
 | Images | Wikimedia Commons API |
